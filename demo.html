@@ -8,7 +8,16 @@
       name="description"
       content="A walk through the zecor console: a persisted conversation with the build fleet, a live-rolled roadmap, metrics, and full control from a phone."
     />
+    <script>
+      try { if (localStorage.getItem("zecor-doc-theme") === "light") document.documentElement.dataset.theme = "light"; } catch (e) {}
+    </script>
     <link rel="icon" href="/favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:ital,wght@0,400;0,600;1,400&family=Martian+Mono:wght@500;700&display=swap"
+    />
     <link rel="stylesheet" href="/src/theme.css" />
     <script type="module" src="/src/site-shell.ts"></script>
     <style>

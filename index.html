@@ -8,7 +8,16 @@
       name="description"
       content="Local deterministic execution plus hybrid model routing. Builds and verifies software with minimal token overhead."
     />
+    <script>
+      try { if (localStorage.getItem("zecor-doc-theme") === "light") document.documentElement.dataset.theme = "light"; } catch (e) {}
+    </script>
     <link rel="icon" href="/favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:ital,wght@0,400;0,600;1,400&family=Martian+Mono:wght@500;700&display=swap"
+    />
     <link rel="stylesheet" href="/src/theme.css" />
     <script type="module" src="/src/site-shell.ts"></script>
   </head>
@@ -16,36 +25,36 @@
     <zecor-doc path="/">
       <main class="wrap">
         <p class="kicker">zecor.dev</p>
-        <h1>Zecor</h1>
+        <h1>Ship features.<br />Spend tokens last.</h1>
         <p class="lede">
-          An autonomous software construction engine that pairs local deterministic
-          execution with hybrid model routing to build and verify software with minimal
-          token overhead.
+          Zecor is an autonomous software construction engine that pairs local
+          deterministic execution with hybrid model routing to build and verify software
+          with minimal token overhead.
         </p>
 
-        <pre class="diagram">
-  one-line ask
-       │
-       ▼
-  ┌───────────────────┐   fails fast, no tokens spent
-  │ Deterministic gate│ ─────────────────────────────┐
-  │ ast-grep, linters,│                              │
-  │ type checks, tests│                              │
-  └───────────────────┘                              │
-       │ needs a model                               │
-       ▼                                             │
-  ┌───────────────────┐   local, unmetered           │
-  │ Local model tier  │   aider + a coder model on   │
-  │                   │   an OpenAI-compatible /v1    │
-  └───────────────────┘                              │
-       │ two local tries, then escalate              │
-       ▼                                             │
-  ┌───────────────────┐   metered, last resort       │
-  │ Cloud reasoning   │   one paid call at a time    │
-  └───────────────────┘                              │
-       │                                             ▼
-       └──► branch + draft PR ── secret scan ── gate re-run
-        </pre>
+        <div class="ladder">
+          <div class="hop">one-line ask</div>
+          <div class="rung" style="--rc: var(--free)">
+            <b>Deterministic gate</b>
+            <span class="cost">no tokens</span>
+            <span class="note">ast-grep, linters, type checks, tests — fails fast, no tokens spent</span>
+          </div>
+          <div class="hop">needs a model</div>
+          <div class="rung" style="--rc: var(--free)">
+            <b>Local model tier</b>
+            <span class="cost">local · unmetered</span>
+            <span class="note">aider + a coder model on an OpenAI-compatible /v1 endpoint</span>
+          </div>
+          <div class="hop">two local tries, then escalate</div>
+          <div class="rung" style="--rc: var(--crit)">
+            <b>Cloud reasoning</b>
+            <span class="cost">metered · last resort</span>
+            <span class="note">one paid call at a time</span>
+          </div>
+          <div class="ladder-exit">
+            &rarr; <b>branch + draft PR</b> · secret scan · gate re-run
+          </div>
+        </div>
 
         <h2>Install</h2>
         <pre>git clone https://github.com/zecordev/zecor &amp;&amp; cd zecor
@@ -63,6 +72,43 @@ uv run zecor doctor</pre>
           definition of done; escalation is driven by observed artifacts — a still-red
           gate, an unchanged failing-assertion set, a duplicate diff, scope creep — not
           by a model's self-reported confidence.
+        </p>
+
+        <h2>Rust internals, published</h2>
+        <p>
+          The deterministic layer leans on small, fast Rust tools. They stand alone and
+          are published under the <a href="https://github.com/zecordev">zecordev</a> org.
+        </p>
+        <div class="crates">
+          <a class="crate" href="https://github.com/zecordev/zecor-sandbox">
+            <span class="name">zecor-sandbox</span>
+            <p>
+              Cross-platform process isolation for untrusted test execution: one policy —
+              Landlock/seccomp on Linux, sandbox-exec on macOS, Job Objects on Windows.
+            </p>
+            <span class="tags">
+              <span class="tag">rust</span>
+              <span class="tag">criterion benchmarks</span>
+              <span class="tag">SECURITY.md</span>
+            </span>
+          </a>
+          <a class="crate" href="https://github.com/zecordev/zecor-tokcount">
+            <span class="name">zecor-tokcount</span>
+            <p>
+              Exact BPE token counting and byte-precise context trimming for LLM cost
+              control.
+            </p>
+            <span class="tags">
+              <span class="tag">rust</span>
+              <span class="tag">criterion benchmarks</span>
+            </span>
+          </a>
+        </div>
+        <p class="aside-note">
+          Also public:
+          <a href="https://github.com/zecordev/zecor-secretscan">zecor-secretscan</a>,
+          <a href="https://github.com/zecordev/zecor-astscan">zecor-astscan</a>,
+          <a href="https://github.com/zecordev/zecor-gitengine">zecor-gitengine</a>.
         </p>
 
         <h2>Read next</h2>

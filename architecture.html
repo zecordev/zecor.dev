@@ -4,7 +4,16 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Architecture — Zecor</title>
+    <script>
+      try { if (localStorage.getItem("zecor-doc-theme") === "light") document.documentElement.dataset.theme = "light"; } catch (e) {}
+    </script>
     <link rel="icon" href="/favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:ital,wght@0,400;0,600;1,400&family=Martian+Mono:wght@500;700&display=swap"
+    />
     <link rel="stylesheet" href="/src/theme.css" />
     <script type="module" src="/src/site-shell.ts"></script>
   </head>
@@ -32,10 +41,10 @@
         <p>Escalation climbs a fixed ladder; each rung is skipped only if the ledger records it as unavailable.</p>
         <table>
           <tr><th>Tier</th><th>What</th><th>Cost</th></tr>
-          <tr><td>T0</td><td>Deterministic <code>ast-grep</code> codemods for recurring fix shapes</td><td>none</td></tr>
-          <tr><td>T1</td><td><code>aider</code> + a local coder model on an OpenAI-compatible endpoint</td><td>none (local)</td></tr>
-          <tr><td>T2</td><td>Reader tiers: an HTTP model that returns text but touches no lane</td><td>metered</td></tr>
-          <tr><td>T3 / T4</td><td>Cloud reasoning appliers (Codex, Claude); one paid call at a time</td><td>metered</td></tr>
+          <tr><td><span class="tier t-free">T0</span></td><td>Deterministic <code>ast-grep</code> codemods for recurring fix shapes</td><td>none</td></tr>
+          <tr><td><span class="tier t-free">T1</span></td><td><code>aider</code> + a local coder model on an OpenAI-compatible endpoint</td><td>none (local)</td></tr>
+          <tr><td><span class="tier t-meter">T2</span></td><td>Reader tiers: an HTTP model that returns text but touches no lane</td><td>metered</td></tr>
+          <tr><td><span class="tier t-cloud">T3 / T4</span></td><td>Cloud reasoning appliers (Codex, Claude); one paid call at a time</td><td>metered</td></tr>
         </table>
         <p>
           Bounded and mechanical work gets two local attempts before any escalation.

@@ -31,63 +31,107 @@
         </p>
 
         <h2>State lives on disk, not in memory</h2>
+        <p>Everything a run knows lives in one of three stores, and none of them can be torn mid-write:</p>
+        <table>
+          <tr><th>State</th><th>Lives as</th><th>Why an interruption can't corrupt it</th></tr>
+          <tr>
+            <td>Task progress</td>
+            <td>a git branch</td>
+            <td>
+              <code>open_lane</code> checks out a worktree per task and every attempt
+              commits or resets against it — an interrupted run leaves real,
+              inspectable git history, not a half-finished diff in a dead process.
+            </td>
+          </tr>
+          <tr>
+            <td>Task queue</td>
+            <td>card files</td>
+            <td>
+              written with a tmp-file-plus-<code>os.replace</code> swap — a reader
+              sees the old card or the new one, never a half-written one.
+            </td>
+          </tr>
+          <tr>
+            <td>Quota ledger</td>
+            <td>SQLite, WAL mode</td>
+            <td>crash-safe by construction.</td>
+          </tr>
+        </table>
         <p>
-          A task's progress <em>is</em> its git branch — <code>open_lane</code> checks out
-          a worktree per task and every attempt commits or resets against it, so an
-          interrupted run leaves real, inspectable git history behind rather than a
-          half-finished diff in a dead process. The task queue is a set of card files
-          written with a tmp-file-plus-<code>os.replace</code> swap, so a crash mid-write
-          can never leave a half-written card — a reader sees the old version or the new
-          one, never a corrupt one. The quota ledger is SQLite in WAL mode, which is
-          crash-safe by construction. Restart after any of this and the state that
-          matters was never only in RAM to begin with.
+          Restart after any interruption and the state that matters was never only in
+          RAM to begin with.
         </p>
 
-        <h2>Sleep and lid-close</h2>
+        <h2>Sleep, lid-close, crash</h2>
         <p>
-          Every in-flight task holds a lease with an expiry, and a lease past its expiry
-          is normally treated as abandoned and picked up by the next run. The distinction
-          that matters: a laptop that suspends mid-task freezes its process without
-          killing it, so on wake the holder is still alive — just late. A lease past
-          expiry with a live holder gets ten minutes of grace before anything reaps it, so
-          a lid closed for a shorter sleep costs nothing; a genuinely dead process (no
-          holder) is reclaimed immediately.
+          Every in-flight task holds a lease with an expiry, and a lease past its
+          expiry is normally treated as abandoned and picked up by the next run. What
+          actually happens turns on one question: is the holder still alive?
         </p>
-
-        <h2>Restart after a crash</h2>
-        <p>
-          The task queue is idempotent by design: a card that was mid-run when its holder
-          died goes back to <code>ready</code>, not to some special recovery state, so the
-          same dispatch path that picks up a fresh task also picks up an interrupted one.
-          A worktree left behind by a killed run self-heals on the next pass rather than
-          requiring a person to notice and clean it up.
-        </p>
+        <div class="ladder">
+          <div class="hop">lease past its expiry</div>
+          <div class="rung" style="--rc: var(--free)">
+            <b>Holder alive — the machine slept</b>
+            <span class="cost">ten minutes grace</span>
+            <span class="note">
+              A laptop that suspends mid-task freezes its process without killing it,
+              so on wake the holder is still there — just late. A live holder past
+              expiry gets ten minutes before anything reaps it; a lid closed for a
+              shorter sleep costs nothing.
+            </span>
+          </div>
+          <div class="hop">no live holder</div>
+          <div class="rung" style="--rc: var(--crit)">
+            <b>Holder dead — crash or kill</b>
+            <span class="cost">reclaimed immediately</span>
+            <span class="note">
+              The queue is idempotent by design: a card that was mid-run when its
+              holder died goes back to <code>ready</code>, not to some special
+              recovery state, so the same dispatch path that picks up a fresh task
+              also picks up an interrupted one.
+            </span>
+          </div>
+          <div class="ladder-exit">
+            &rarr; <b>next pass resumes</b> · a worktree left behind by a killed run
+            self-heals rather than requiring a person to notice and clean it up
+          </div>
+        </div>
 
         <h2>The remote link</h2>
         <p>
           Watching or steering a run from a phone means the connection itself has to
           survive roaming between towers, backgrounding the app, and walking through a
           dead zone — the machine running Zecor is almost never the problem, the link to
-          it is. <code>zecor remote setup</code> wires three pieces built for exactly
-          that:
+          it is. <code>zecor remote setup</code> wires three pieces, each with one job:
         </p>
-        <ul>
-          <li>
-            <strong>Tailscale</strong> gives the phone a stable address to the machine
-            over an encrypted WireGuard link that punches out through carrier NAT on its
-            own — no port forwarding, nothing to configure on a router.
-          </li>
-          <li>
-            <strong>tmux</strong> keeps the console session running on the machine
-            independent of whether anything is attached to it.
-          </li>
-          <li>
-            <strong>mosh</strong> replaces the fragile SSH-style connection between phone
-            and session with one that tolerates IP changes, sleep, and dead zones — close
-            the phone, walk out of signal, reopen it later, and the session is still
-            there, not disconnected.
-          </li>
-        </ul>
+        <div class="parts">
+          <div class="part">
+            <span class="name">Tailscale</span>
+            <span class="role">the path</span>
+            <p>
+              Gives the phone a stable address to the machine over an encrypted
+              WireGuard link that punches out through carrier NAT on its own — no port
+              forwarding, nothing to configure on a router.
+            </p>
+          </div>
+          <div class="part">
+            <span class="name">tmux</span>
+            <span class="role">the session</span>
+            <p>
+              Keeps the console session running on the machine independent of whether
+              anything is attached to it.
+            </p>
+          </div>
+          <div class="part">
+            <span class="name">mosh</span>
+            <span class="role">the connection</span>
+            <p>
+              Replaces the fragile SSH-style connection with one that tolerates IP
+              changes, sleep, and dead zones — close the phone, walk out of signal,
+              reopen it later, and the session is still there, not disconnected.
+            </p>
+          </div>
+        </div>
         <p>
           None of that makes the run itself more durable — the state-on-disk model above
           already does that. It means losing the <em>view</em> into a run costs nothing
@@ -96,13 +140,23 @@
 
         <h2>What this doesn't cover yet</h2>
         <p>
-          Honestly: a few pieces of the resilience story are still hardening rather than
-          finished. A local model endpoint that drops mid-attempt is reported as a failure
-          today, not yet retried with backoff. A deadline measured against wall-clock
-          time (so a long sleep can't look like a three-second timeout, and a real
-          three-second timeout can't look like a sleep) is audited in the places that
-          matter most, not universally yet. Neither is silent — both fail loud and
-          recoverable, never silently wrong.
+          Honestly: two pieces of the resilience story are still hardening rather than
+          finished.
+        </p>
+        <ul>
+          <li>
+            <strong>Local-model reconnect.</strong> A local model endpoint that drops
+            mid-attempt is reported as a failure today, not yet retried with backoff.
+          </li>
+          <li>
+            <strong>Wall-clock deadlines everywhere.</strong> A deadline measured
+            against wall-clock time (so a long sleep can't look like a three-second
+            timeout, and a real three-second timeout can't look like a sleep) is
+            audited in the places that matter most, not universally yet.
+          </li>
+        </ul>
+        <p>
+          Neither is silent — both fail loud and recoverable, never silently wrong.
         </p>
       </main>
     </zecor-doc>

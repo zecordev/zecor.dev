@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="en" data-theme-default="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Zecor — flying the console</title>
+    <meta
+      name="description"
+      content="A walk through the zecor console: a persisted conversation with the build fleet, a live-rolled roadmap, metrics, and full control from a phone."
+    />
+    <link rel="icon" href="/favicon.svg" />
+    <link rel="stylesheet" href="/src/theme.css" />
+    <script type="module" src="/src/site-shell.ts"></script>
+    <style>
+      figure { margin: 1.4rem 0 0; }
+      .shot {
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        overflow: hidden;
+        background: #1b1b1b;
+        line-height: 0;
+      }
+      .shot img { display: block; width: 100%; height: auto; }
+      figcaption {
+        font-family: var(--mono);
+        font-size: 0.78rem;
+        color: var(--dim);
+        margin-top: 0.7rem;
+      }
+      .measure { max-width: 40rem; }
+      .cmd {
+        display: inline-flex;
+        gap: 0.6rem;
+        font-family: var(--mono);
+        font-size: 0.85rem;
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 0.55rem 0.8rem;
+        margin-top: 1.4rem;
+      }
+      .cmd b { color: var(--accent); }
+      .chips { display: flex; gap: 0.4rem; flex-wrap: wrap; margin-top: 0.9rem; }
+      .chip {
+        font-family: var(--mono);
+        font-size: 0.72rem;
+        padding: 0.15rem 0.5rem;
+        border-radius: 4px;
+        border: 1px solid var(--line);
+        color: var(--dim);
+      }
+      td:first-child { font-family: var(--mono); color: var(--accent); white-space: nowrap; }
+      .grp {
+        font-family: var(--mono);
+        font-size: 0.72rem;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--dim);
+      }
+    </style>
+  </head>
+  <body>
+    <zecor-doc path="/demo">
+      <main class="wrap">
+        <p class="kicker">zecor console · a demo</p>
+        <h1>Flying the console</h1>
+        <p class="lede">
+          The autonomous build fleet used to be markdown files in folders and a cron job.
+          <b>zecor&nbsp;console</b> is the cockpit — and it is not a dashboard with a
+          command line. The centre of the screen is a <b>conversation with the fleet</b>:
+          it answers questions, it asks you things when a card is stuck, and the whole
+          exchange survives a reconnect. The board moved to a rail.
+        </p>
+        <div class="cmd"><b>zecor console</b><span>· needs the console extra: <b>uv sync --group console</b></span></div>
+
+        <h2>The conversation</h2>
+        <div class="measure">
+          <p>
+            You talk to the fleet in plain language. A control verb —
+            <code>stop</code>, <code>retry 0043 with opus</code>,
+            <code>assign 0047 cc2-layer2</code> — is caught by a closed, no-AI grammar
+            and runs immediately; a rate-limited request must never sit between you and
+            <code>stop</code>. Anything else — <em>"why is 0043 stuck?"</em>,
+            <em>"draft two cards for the deploy checkpoint"</em> — goes to a frontier
+            model on a worker thread. It can propose actions; you confirm each. If the
+            frontier is unreachable it says <b>Layer-2 offline</b> and everything else
+            keeps working.
+          </p>
+          <p>
+            Every turn is one row in SQLite. Kill the console, reopen it — over mosh from
+            a trailhead, or fresh after a reboot — and the conversation replays. A
+            background <code>watchd</code> writes narration and questions into the same
+            log with no console attached, so nothing that happens while you're gone is
+            lost.
+          </p>
+        </div>
+        <figure>
+          <div class="shot"><img src="/console/chat.svg" alt="the zecor console transcript pane" /></div>
+          <figcaption>
+            the transcript, live · a Layer-2 answer, a landed-card narration, a question
+            the fleet asked and the reply that re-queued the card
+          </figcaption>
+        </figure>
+        <div class="chips">
+          <span class="chip">you → message</span>
+          <span class="chip">fleet → reply</span>
+          <span class="chip">fleet → question</span>
+          <span class="chip">you → answer</span>
+          <span class="chip">narration</span>
+          <span class="chip">notice</span>
+        </div>
+
+        <h2>It asks you things</h2>
+        <div class="measure">
+          <p>
+            When a card lands in <code>blocked</code> / <code>needs-human-design</code> /
+            <code>gate-broken</code>, the fleet posts a <b>question</b> addressed to you —
+            keyed by the card and its blocking reason, so a poll loop or a restart never
+            reposts it. Your plain-text reply becomes the retry note and re-dispatches
+            the card in one move. The answer is marked done <em>before</em> the retry
+            fires, so two clients can't double-dispatch, and a failed retry re-opens the
+            question instead of swallowing it.
+          </p>
+        </div>
+
+        <h2>The roadmap, rolled up live</h2>
+        <div class="measure">
+          <p>
+            Mission › Campaign › Move › Card. No status is stored: every node's roll-up is
+            recomputed from the live cards under it, worst-state-wins, each time you press
+            <code>m</code>. This is the machine's own plan — <em>Run for a week
+            unattended</em> and <em>The console flies like a chat</em> among the
+            campaigns. A Move with no cards is <b>UNPLANNED</b>; when the queue drains,
+            <code>replenish</code> decomposes the next unplanned Move into cards and the
+            loop keeps going.
+          </p>
+        </div>
+        <figure>
+          <div class="shot"><img src="/console/roadmap.svg" alt="the roadmap tree over the board rail" /></div>
+          <figcaption>
+            press <code>m</code> · the tree over the board rail, a computed
+            <code>landed / total</code> on every node
+          </figcaption>
+        </figure>
+
+        <h2>Is it working?</h2>
+        <div class="measure">
+          <p>
+            <code>M</code> is land rate by tier, cycle time, a rough cost estimate and a
+            daily-lands sparkline — read from the attempt ledger. It says
+            <b>"no runs yet"</b> in plain words until the ledger fills. Built and tested
+            against synthetic rows; tuned after the first real run.
+          </p>
+        </div>
+        <figure>
+          <div class="shot"><img src="/console/metrics.svg" alt="the metrics pane, honest about an empty ledger" /></div>
+          <figcaption>press <code>M</code> · honest about an empty ledger</figcaption>
+        </figure>
+
+        <h2>Every key</h2>
+        <table>
+          <thead>
+            <tr><th>Key</th><th>Does</th></tr>
+          </thead>
+          <tbody>
+            <tr><td colspan="2" class="grp">Talk</td></tr>
+            <tr><td>i</td><td>focus the chat box (Enter sends; a control verb runs, anything else asks Layer-2)</td></tr>
+            <tr><td>:</td><td>the no-AI command grammar — <code>stop</code>, <code>focus &lt;repo&gt;</code>, <code>retry 0043 with opus</code> …</td></tr>
+            <tr><td colspan="2" class="grp">Steer</td></tr>
+            <tr><td>s</td><td>toggle the STOP flag</td></tr>
+            <tr><td>g · p</td><td>start <code>zecor run</code> · <code>zecor plan</code>, detached</td></tr>
+            <tr><td>r · z</td><td>retry the selected card · clear a zombie's lease</td></tr>
+            <tr><td>u</td><td>undo the last safely-reversible action (assign / stop / go / an unplanned inbox line)</td></tr>
+            <tr><td>n</td><td>new task → one inbox line → offer to plan it</td></tr>
+            <tr><td colspan="2" class="grp">Look</td></tr>
+            <tr><td>m · M</td><td>roadmap tree · metrics</td></tr>
+            <tr><td>h · d</td><td>history (turns + actions) · last night's digest</td></tr>
+            <tr><td>v · c</td><td>the selected card's branch diff · a raw <code>zecor &lt;args&gt;</code> pane</td></tr>
+            <tr><td>f · R</td><td>cycle the filter · force a refresh</td></tr>
+          </tbody>
+        </table>
+
+        <h2>From your pocket</h2>
+        <div class="measure">
+          <p>
+            The layout is responsive. Below ~100 columns — a phone over mosh — the board
+            and panes fold away and the chat is the whole screen, but
+            <b>every action stays reachable</b> through the grammar and the keys: STOP,
+            retry, answer a question, open any pane full-screen. Above ~140 the roadmap
+            and a mini output pane sit alongside the chat.
+          </p>
+          <p>
+            The remote path today is <b>Tailscale</b> through carrier NAT + <b>mosh</b>
+            for signal loss + <b>tmux</b> for the disconnect. <code>zecor remote setup</code>
+            does that install in one command; a responsive web view on the tailnet
+            (<code>zecor serve</code> + the PWA under <code>webui/</code>) covers a pocket
+            glance with no terminal app.
+          </p>
+        </div>
+        <figure>
+          <div class="shot"><img src="/console/phone.svg" alt="the console at 80 columns, chat only" /></div>
+          <figcaption>80 columns · chat only, full control</figcaption>
+        </figure>
+
+        <p class="kicker" style="margin-top: 3rem">
+          zecor console · Textual over <code>zecor/core</code> · transcript, questions,
+          action log and metrics in SQLite · the runtime stays stdlib
+        </p>
+      </main>
+    </zecor-doc>
+  </body>
+</html>

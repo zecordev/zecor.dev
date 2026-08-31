@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Benchmarks — Zecor</title>
+    <link rel="icon" href="/favicon.svg" />
+    <link rel="stylesheet" href="/src/theme.css" />
+    <script type="module" src="/src/site-shell.ts"></script>
+  </head>
+  <body>
+    <zecor-doc path="/benchmarks">
+      <main class="wrap">
+        <p class="kicker">Benchmarks</p>
+        <h1>Cost per feature: hybrid vs pure cloud</h1>
+        <p class="lede">
+          The claim Zecor is built around: most landable work never needs a frontier
+          model, so the metered cost of a shipped feature is a fraction of a
+          cloud-only agent's.
+        </p>
+
+        <h2>Method</h2>
+        <p>Each run works an identical backlog against the same repository. Recorded per task:</p>
+        <ul>
+          <li>which tier landed it (T0 codemod, T1 local, T3/T4 cloud)</li>
+          <li>metered input/output tokens and their USD cost</li>
+          <li>wall-clock from dispatch to a green gate</li>
+          <li>escalations before it landed</li>
+        </ul>
+        <p>
+          Two configurations: <strong>hybrid</strong> (the default ladder — T0/T1 first,
+          cloud only on escalation) and <strong>cloud-only</strong> (every task goes
+          straight to a frontier applier). Same model versions, same gate, same backlog.
+        </p>
+
+        <h2>Results</h2>
+        <p>
+          <em>Pending the first full runs.</em> Zecor records every attempt in a local
+          ledger; these figures are published once that ledger has representative data
+          rather than estimated. The table below shows the shape of what is measured.
+        </p>
+        <table>
+          <tr><th>Metric</th><th>Hybrid</th><th>Cloud-only</th></tr>
+          <tr><td>Tasks landed without a frontier call</td><td>—</td><td>0</td></tr>
+          <tr><td>Median metered $ / landed feature</td><td>—</td><td>—</td></tr>
+          <tr><td>Median wall-clock / landed feature</td><td>—</td><td>—</td></tr>
+          <tr><td>Escalations / task (mean)</td><td>—</td><td>n/a</td></tr>
+        </table>
+
+        <h2>Reproduce it</h2>
+        <pre>uv run zecor run --until 07:00
+uv run zecor metrics        # land rate by tier, cycle time, est. cost</pre>
+        <p>
+          <code>zecor metrics</code> reads the same ledger and reports land rate by tier,
+          cycle time, and an estimated cost. It states plainly when the ledger has no
+          runs yet.
+        </p>
+      </main>
+    </zecor-doc>
+  </body>
+</html>

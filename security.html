@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Security — Zecor</title>
+    <link rel="icon" href="/favicon.svg" />
+    <link rel="stylesheet" href="/src/theme.css" />
+    <script type="module" src="/src/site-shell.ts"></script>
+  </head>
+  <body>
+    <zecor-doc path="/security">
+      <main class="wrap">
+        <p class="kicker">Security</p>
+        <h1>Autonomy tiers, sandboxing, ingestion hardening</h1>
+        <p class="lede">
+          The full threat model and disclosure process are in
+          <a href="https://github.com/zecordev/zecor/blob/main/SECURITY.md">SECURITY.md</a>.
+          This page is the operator's summary.
+        </p>
+
+        <h2>Autonomy modes</h2>
+        <p>Set with <code>ZECOR_MODE</code> or the <code>mode</code> key in <code>zecor.config.json</code>. Default: <code>hardened</code>. <code>zecor mode</code> prints the active posture.</p>
+        <table>
+          <tr><th>Mode</th><th>Use case</th><th>Writes</th><th>Auto-merge</th><th>Shell</th><th>External input</th></tr>
+          <tr>
+            <td><code>greenfield</code></td>
+            <td>New app, zero users, isolated workspace</td>
+            <td>files, branches, PRs</td>
+            <td>yes</td>
+            <td>unrestricted</td>
+            <td>trusted</td>
+          </tr>
+          <tr>
+            <td><code>guarded</code></td>
+            <td>Feature work on an existing repo</td>
+            <td>branch, author, test</td>
+            <td>only if every deterministic check passes clean</td>
+            <td>unrestricted</td>
+            <td>wrapped as untrusted</td>
+          </tr>
+          <tr>
+            <td><code>hardened</code></td>
+            <td>Production, public repos, untrusted input</td>
+            <td>branch, draft PR only</td>
+            <td>never — human review required</td>
+            <td>allow-listed</td>
+            <td>wrapped as untrusted</td>
+          </tr>
+        </table>
+
+        <h2>Sandboxing</h2>
+        <ul>
+          <li>
+            <strong>Subprocess capping.</strong> Every external command runs in its own
+            process group with a hard timeout and <code>SIGKILL</code> on overrun. The
+            environment has <code>ANTHROPIC_API_KEY</code> / <code>OPENAI_API_KEY</code>
+            removed.
+          </li>
+          <li>
+            <strong>Command allow-list (hardened).</strong> Any binary or leading
+            argument not on an explicit whitelist is refused with exit 126 before it
+            runs — git read/write subcommands, the deterministic gates, and the known
+            tier appliers only.
+          </li>
+          <li>
+            <strong>MCP disabled.</strong> Model CLIs are invoked with an empty MCP
+            config; tool definitions never enter a prompt.
+          </li>
+        </ul>
+
+        <h2>Untrusted input</h2>
+        <p>
+          GitHub issues, PR comments, bug reports, and fetched web pages are wrapped in a
+          nonce-delimited container with a standing instruction to treat everything
+          inside as data, never as instructions. Fence-break attempts and role-boundary
+          spoofs inside the payload are defanged. Wrapping is on in every mode except
+          <code>greenfield</code>.
+        </p>
+
+        <h2>Secret-leak prevention</h2>
+        <p>
+          Before any draft PR is opened, the committed diff and the generated PR body are
+          scanned for known credential shapes (AWS, GitHub, Slack, Google, OpenAI,
+          Anthropic keys; private-key headers; <code>secret = "…"</code> assignments) and
+          for high-entropy tokens. A hit flips the task to <code>needs-human</code>: the
+          verified change stays on its branch, but no PR carries the leak. Run it by hand
+          with <code>zecor scan</code>.
+        </p>
+
+        <h2>Reporting a vulnerability</h2>
+        <p>
+          Email <code>security@zecor.dev</code>. Do not open a public issue for an
+          unpatched vulnerability. Acknowledgement within 72 hours; coordinated
+          disclosure is the default.
+        </p>
+      </main>
+    </zecor-doc>
+  </body>
+</html>

@@ -1,0 +1,26 @@
+{
+  "name": "zecor-docs",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "description": "zecor.dev -- the documentation site. Lit + Vite, static, minimal JS.",
+  "packageManager": "pnpm@9.12.0",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "lit": "^3.3.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.5.0",
+    "jsdom": "^24.1.1",
+    "glob": "^11.0.0",
+    "typescript": "^5.5.4",
+    "vite": "^5.4.0",
+    "vitest": "^2.0.5"
+  }
+}

@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en" data-theme-default="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Zecor — autonomous software construction engine</title>
+    <meta
+      name="description"
+      content="Local deterministic execution plus hybrid model routing. Builds and verifies software with minimal token overhead."
+    />
+    <link rel="icon" href="/favicon.svg" />
+    <link rel="stylesheet" href="/src/theme.css" />
+    <script type="module" src="/src/site-shell.ts"></script>
+  </head>
+  <body>
+    <zecor-doc path="/">
+      <main class="wrap">
+        <p class="kicker">zecor.dev</p>
+        <h1>Zecor</h1>
+        <p class="lede">
+          An autonomous software construction engine that pairs local deterministic
+          execution with hybrid model routing to build and verify software with minimal
+          token overhead.
+        </p>
+
+        <pre class="diagram">
+  one-line ask
+       │
+       ▼
+  ┌───────────────────┐   fails fast, no tokens spent
+  │ Deterministic gate│ ─────────────────────────────┐
+  │ ast-grep, linters,│                              │
+  │ type checks, tests│                              │
+  └───────────────────┘                              │
+       │ needs a model                               │
+       ▼                                             │
+  ┌───────────────────┐   local, unmetered           │
+  │ Local model tier  │   aider + a coder model on   │
+  │                   │   an OpenAI-compatible /v1    │
+  └───────────────────┘                              │
+       │ two local tries, then escalate              │
+       ▼                                             │
+  ┌───────────────────┐   metered, last resort       │
+  │ Cloud reasoning   │   one paid call at a time    │
+  └───────────────────┘                              │
+       │                                             ▼
+       └──► branch + draft PR ── secret scan ── gate re-run
+        </pre>
+
+        <h2>Install</h2>
+        <pre>git clone https://github.com/zecordev/zecor &amp;&amp; cd zecor
+uv sync --group dev
+cp zecor.config.example.json zecor.config.json
+uv run zecor doctor</pre>
+        <p>
+          Requires Python 3.12+, <code>git</code>, <code>ripgrep</code>,
+          <code>ast-grep</code>, and any OpenAI-compatible local model endpoint.
+        </p>
+
+        <h2>What it is not</h2>
+        <p>
+          Not a chat wrapper. The exit code of a deterministic gate is the sole
+          definition of done; escalation is driven by observed artifacts — a still-red
+          gate, an unchanged failing-assertion set, a duplicate diff, scope creep — not
+          by a model's self-reported confidence.
+        </p>
+
+        <h2>Read next</h2>
+        <ul>
+          <li><a href="/architecture">Architecture</a> — the gate, the routing ladder, the triggers.</li>
+          <li><a href="/security">Security</a> — autonomy modes, sandboxing, injection handling.</li>
+          <li><a href="/configuration">Configuration</a> — local runtimes, tool paths, limits.</li>
+          <li><a href="/benchmarks">Benchmarks</a> — cost per feature, hybrid vs pure cloud.</li>
+        </ul>
+      </main>
+    </zecor-doc>
+  </body>
+</html>

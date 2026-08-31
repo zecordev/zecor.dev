@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Configuration — Zecor</title>
+    <link rel="icon" href="/favicon.svg" />
+    <link rel="stylesheet" href="/src/theme.css" />
+    <script type="module" src="/src/site-shell.ts"></script>
+  </head>
+  <body>
+    <zecor-doc path="/configuration">
+      <main class="wrap">
+        <p class="kicker">Configuration</p>
+        <h1>Local runtimes, tool paths, limits</h1>
+        <p class="lede">
+          Everything lives in <code>zecor.config.json</code> (or <code>.zecor/config.json</code>).
+          The full annotated schema is <code>zecor.config.example.json</code> in the repo.
+          Environment variables override the file.
+        </p>
+
+        <h2>Local model endpoint</h2>
+        <p>
+          Zecor talks to any OpenAI-compatible <code>/v1/chat/completions</code> endpoint.
+          Set <code>local_model.base_url</code> or <code>ZECOR_LM_BASE_URL</code>.
+        </p>
+        <table>
+          <tr><th>Runtime</th><th>base_url</th><th>Start</th></tr>
+          <tr><td>LM Studio</td><td><code>http://127.0.0.1:1234/v1</code></td><td>app, or <code>lms server start</code></td></tr>
+          <tr><td>Ollama</td><td><code>http://127.0.0.1:11434/v1</code></td><td><code>ollama serve</code>, models via <code>ollama pull</code></td></tr>
+          <tr><td>vLLM</td><td><code>http://127.0.0.1:8000/v1</code></td><td><code>vllm serve &lt;model&gt;</code></td></tr>
+          <tr><td>llama.cpp</td><td><code>http://127.0.0.1:8080/v1</code></td><td><code>llama-server --host 127.0.0.1 --port 8080</code></td></tr>
+        </table>
+        <p>
+          Five roles are configured independently:
+          <code>primary_coder</code>, <code>deep_coder</code>, <code>reasoner</code>,
+          <code>router</code>, <code>embed</code>. Point each at a model your endpoint
+          serves. Local prompts are capped at <code>prompt_token_cap</code> (default
+          8000); anything larger is a slicing error or belongs one tier up.
+        </p>
+
+        <h2>Cloud fallback</h2>
+        <p>
+          Credentials come from the environment, never the config file. Set
+          <code>ANTHROPIC_API_KEY</code> / <code>OPENAI_API_KEY</code> in the shell that
+          starts Zecor; they are stripped from every lane subprocess.
+        </p>
+
+        <h2>Deterministic tools</h2>
+        <p>
+          <code>deterministic_tools</code> holds paths for <code>git</code>,
+          <code>ripgrep</code>, and <code>ast-grep</code> if they are not on
+          <code>PATH</code>. <code>gate.script</code> is the per-repo gate command;
+          <code>gate.wall_clock_cap_s</code> bounds a single attempt.
+        </p>
+
+        <h2>Autonomy limits</h2>
+        <table>
+          <tr><th>Key</th><th>Default</th><th>Effect</th></tr>
+          <tr><td><code>max_concurrent_lanes</code></td><td>2</td><td>Parallel builds; also throttled by live RAM/load</td></tr>
+          <tr><td><code>local_attempts_before_escalation</code></td><td>2</td><td>Local tries before climbing the ladder</td></tr>
+          <tr><td><code>escalations_per_task</code></td><td>4</td><td>Then the task is <code>blocked</code></td></tr>
+          <tr><td><code>spend_daily_usd</code> / <code>spend_weekly_usd</code></td><td>0</td><td>0 disables the USD ceiling; the vendor quota table still throttles</td></tr>
+        </table>
+
+        <h2>CI/CD integration</h2>
+        <p>
+          Point CI at <code>bash .zecor/verify.sh</code>. In <code>guarded</code> mode
+          Zecor blocks its own auto-merge unless that gate — plus type checks and
+          security scanners — passes with no warnings. In <code>hardened</code> mode it
+          only opens draft PRs; merge is always a human action.
+        </p>
+
+        <h2>Notifications</h2>
+        <p>
+          <code>notify.ntfy_topic</code> (free, works through CGNAT) or
+          <code>notify.pushover_*</code>. Zecor pushes on a stuck goal, a crashed run, or
+          a card that needs a decision.
+        </p>
+      </main>
+    </zecor-doc>
+  </body>
+</html>

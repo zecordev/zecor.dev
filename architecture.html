@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Architecture — Zecor</title>
+    <link rel="icon" href="/favicon.svg" />
+    <link rel="stylesheet" href="/src/theme.css" />
+    <script type="module" src="/src/site-shell.ts"></script>
+  </head>
+  <body>
+    <zecor-doc path="/architecture">
+      <main class="wrap">
+        <p class="kicker">Architecture</p>
+        <h1>Deterministic gates, hybrid routing</h1>
+
+        <h2>The deterministic gate</h2>
+        <p>
+          Every repository Zecor works on has a gate script — <code>.zecor/verify.sh</code>
+          (<code>.fleet/verify.sh</code> is still accepted). It runs the repo's linters,
+          type checks, and test suite. A task is done when the gate exits 0. A bounded
+          bug fix starts from a <em>red</em> gate: the failing test is the deliverable,
+          and the loop's job is to make it pass without breaking anything green.
+        </p>
+        <p>
+          The gate runs in a capped subprocess: its own process group, a hard wall-clock
+          timeout, <code>SIGKILL</code> on overrun, and an environment with vendor API
+          keys stripped so a lane cannot reach the operator's paid accounts.
+        </p>
+
+        <h2>The routing ladder</h2>
+        <p>Escalation climbs a fixed ladder; each rung is skipped only if the ledger records it as unavailable.</p>
+        <table>
+          <tr><th>Tier</th><th>What</th><th>Cost</th></tr>
+          <tr><td>T0</td><td>Deterministic <code>ast-grep</code> codemods for recurring fix shapes</td><td>none</td></tr>
+          <tr><td>T1</td><td><code>aider</code> + a local coder model on an OpenAI-compatible endpoint</td><td>none (local)</td></tr>
+          <tr><td>T2</td><td>Reader tiers: an HTTP model that returns text but touches no lane</td><td>metered</td></tr>
+          <tr><td>T3 / T4</td><td>Cloud reasoning appliers (Codex, Claude); one paid call at a time</td><td>metered</td></tr>
+        </table>
+        <p>
+          Bounded and mechanical work gets two local attempts before any escalation.
+          <code>route()</code> is a security-sensitive module: written attended,
+          property-tested against a synthetic ledger, never changed by an automated run.
+        </p>
+
+        <h2>Escalation triggers</h2>
+        <p>
+          A model is never asked whether it succeeded. The harness computes each trigger
+          from artifacts the model cannot fake:
+        </p>
+        <ul>
+          <li>gate red for two consecutive attempts</li>
+          <li>the same failing-assertion set as the previous attempt</li>
+          <li>a diff identical to the previous attempt</li>
+          <li>a previously-green test now failing</li>
+          <li>files touched outside the card's allow-list, or a line count over the ceiling</li>
+          <li>prompt tokens over the local context cap</li>
+          <li>an unresolved symbol (routes to retrieval, not a bigger model)</li>
+        </ul>
+
+        <h2>One backend, many surfaces</h2>
+        <p>
+          <code>zecor/core/</code> holds the read model and the write verbs. The CLI, the
+          operator TUI (<code>zecor console</code>), and the HTTP API + PWA
+          (<code>zecor serve</code>) all go through it. A boundary test fails the build if
+          a task card is written from anywhere outside <code>core/</code>.
+        </p>
+
+        <h2>Running unattended</h2>
+        <p>
+          A supervisor keeps the run alive across crashes, sleep, and reboots. When the
+          queue drains it decomposes the next unplanned roadmap item into fresh cards. A
+          daily pass records what landed and flags any goal that has burned attempts
+          without progress. A spend ceiling throttles to local-only, then pauses.
+        </p>
+      </main>
+    </zecor-doc>
+  </body>
+</html>

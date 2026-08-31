@@ -6,6 +6,7 @@ const PAGES: [string, string][] = [
   ["/demo", "Demo"],
   ["/architecture", "Architecture"],
   ["/security", "Security"],
+  ["/resilience", "Resilience"],
   ["/configuration", "Configuration"],
   ["/benchmarks", "Benchmarks"],
 ];

@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Resilience — Zecor</title>
+    <script>
+      try { if (localStorage.getItem("zecor-doc-theme") === "light") document.documentElement.dataset.theme = "light"; } catch (e) {}
+    </script>
+    <link rel="icon" href="/favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:ital,wght@0,400;0,600;1,400&family=Martian+Mono:wght@500;700&display=swap"
+    />
+    <link rel="stylesheet" href="/src/theme.css" />
+    <script type="module" src="/src/site-shell.ts"></script>
+  </head>
+  <body>
+    <zecor-doc path="/resilience">
+      <main class="wrap">
+        <p class="kicker">Resilience</p>
+        <h1>A closed lid is not a crash</h1>
+        <p class="lede">
+          An unattended run has to survive the ordinary interruptions of an unattended
+          machine — sleep, a dropped network, a killed process — without losing work or
+          wedging. Zecor treats the git branch and the on-disk queue as the source of
+          truth, never the process's memory, so any of those can happen mid-task and the
+          next run picks up exactly where it left off.
+        </p>
+
+        <h2>State lives on disk, not in memory</h2>
+        <p>
+          A task's progress <em>is</em> its git branch — <code>open_lane</code> checks out
+          a worktree per task and every attempt commits or resets against it, so an
+          interrupted run leaves real, inspectable git history behind rather than a
+          half-finished diff in a dead process. The task queue is a set of card files
+          written with a tmp-file-plus-<code>os.replace</code> swap, so a crash mid-write
+          can never leave a half-written card — a reader sees the old version or the new
+          one, never a corrupt one. The quota ledger is SQLite in WAL mode, which is
+          crash-safe by construction. Restart after any of this and the state that
+          matters was never only in RAM to begin with.
+        </p>
+
+        <h2>Sleep and lid-close</h2>
+        <p>
+          Every in-flight task holds a lease with an expiry, and a lease past its expiry
+          is normally treated as abandoned and picked up by the next run. The distinction
+          that matters: a laptop that suspends mid-task freezes its process without
+          killing it, so on wake the holder is still alive — just late. A lease past
+          expiry with a live holder gets ten minutes of grace before anything reaps it, so
+          a lid closed for a shorter sleep costs nothing; a genuinely dead process (no
+          holder) is reclaimed immediately.
+        </p>
+
+        <h2>Restart after a crash</h2>
+        <p>
+          The task queue is idempotent by design: a card that was mid-run when its holder
+          died goes back to <code>ready</code>, not to some special recovery state, so the
+          same dispatch path that picks up a fresh task also picks up an interrupted one.
+          A worktree left behind by a killed run self-heals on the next pass rather than
+          requiring a person to notice and clean it up.
+        </p>
+
+        <h2>The remote link</h2>
+        <p>
+          Watching or steering a run from a phone means the connection itself has to
+          survive roaming between towers, backgrounding the app, and walking through a
+          dead zone — the machine running Zecor is almost never the problem, the link to
+          it is. <code>zecor remote setup</code> wires three pieces built for exactly
+          that:
+        </p>
+        <ul>
+          <li>
+            <strong>Tailscale</strong> gives the phone a stable address to the machine
+            over an encrypted WireGuard link that punches out through carrier NAT on its
+            own — no port forwarding, nothing to configure on a router.
+          </li>
+          <li>
+            <strong>tmux</strong> keeps the console session running on the machine
+            independent of whether anything is attached to it.
+          </li>
+          <li>
+            <strong>mosh</strong> replaces the fragile SSH-style connection between phone
+            and session with one that tolerates IP changes, sleep, and dead zones — close
+            the phone, walk out of signal, reopen it later, and the session is still
+            there, not disconnected.
+          </li>
+        </ul>
+        <p>
+          None of that makes the run itself more durable — the state-on-disk model above
+          already does that. It means losing the <em>view</em> into a run costs nothing
+          either.
+        </p>
+
+        <h2>What this doesn't cover yet</h2>
+        <p>
+          Honestly: a few pieces of the resilience story are still hardening rather than
+          finished. A local model endpoint that drops mid-attempt is reported as a failure
+          today, not yet retried with backoff. A deadline measured against wall-clock
+          time (so a long sleep can't look like a three-second timeout, and a real
+          three-second timeout can't look like a sleep) is audited in the places that
+          matter most, not universally yet. Neither is silent — both fail loud and
+          recoverable, never silently wrong.
+        </p>
+      </main>
+    </zecor-doc>
+  </body>
+</html>
